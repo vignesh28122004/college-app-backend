@@ -3,31 +3,53 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
-  const { name, email, password, role, rollNumber } = req.body; // ✅ added rollNumber
+  const { name, email, password, role, rollNumber } = req.body;
+
   try {
-    // Check if email already exists
+    // 1) Email must be unique
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered' });
+      return res.status(400).json({ error: "Email already registered" });
     }
 
-    // If role is student, ensure rollNumber is provided
-    if (role === 'student' && !rollNumber) {
-      return res.status(400).json({ error: 'Roll Number is required for students' });
+    // 2) Decide final roll number
+    let finalRollNumber = rollNumber;
+
+    if (role === "student") {
+      // For students, rollNumber is required
+      if (!finalRollNumber) {
+        return res
+          .status(400)
+          .json({ error: "Roll Number is required for students" });
+      }
+    } else {
+      // For teacher / hod, generate a unique fake rollNumber
+      finalRollNumber = `NO-RN-${role}-${Date.now()}-${Math.floor(
+        Math.random() * 1000
+      )}`;
     }
 
-    // Hash password
+    // 3) Hash password
     const hashed = await bcrypt.hash(password, 10);
 
-    // Save user
-    const user = new User({ name, email, password: hashed, role, rollNumber });
+    // 4) Save user with finalRollNumber
+    const user = new User({
+      name,
+      email,
+      password: hashed,
+      role,
+      rollNumber: finalRollNumber,
+    });
+
     await user.save();
 
-    res.status(201).json({ message: 'User registered' });
+    res.status(201).json({ message: "User registered" });
   } catch (err) {
+    console.error(err);
     res.status(400).json({ error: err.message });
   }
 };
+
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
