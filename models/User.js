@@ -11,7 +11,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     unique: true,
     sparse: true   // ✅ allows multiple docs with "null" or "" values
-  }
+  },
+
+    resetPasswordToken: {
+      type: String
+    },
+    resetPasswordExpires: {
+      type: Date
+    }
 });
 
 module.exports = mongoose.model("User", userSchema);
