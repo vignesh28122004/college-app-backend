@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+
 const authRoutes = require('./routes/authRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -9,21 +10,32 @@ const userRoutes = require('./routes/userRoutes');
 dotenv.config();
 const app = express();
 
-app.use(cors({
-  origin: 'http://localhost:5173', // frontend URL
-  credentials: true
-}));
+// 🔹 Use env var for frontend URL in production
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+app.use(
+  cors({
+    origin: FRONTEND_URL,   // localhost in dev, Vercel URL in prod
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/users', userRoutes);
 
-mongoose.connect(process.env.MONGO_URI)
+// 🔹 Port with fallback
+const PORT = process.env.PORT || 5000;
+
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => {
     console.log('MongoDB connected');
-    app.listen(process.env.PORT, () =>
-      console.log(`Server running on port ${process.env.PORT}`)
-    );
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
   })
-  .catch(err => console.error('MongoDB Error:', err));
+  .catch((err) => console.error('MongoDB Error:', err));
